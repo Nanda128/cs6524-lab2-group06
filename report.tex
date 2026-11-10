@@ -29,79 +29,65 @@ email address or ORCID}
 City, Country \\
 email address or ORCID}
 \and
-\IEEEauthorblockN{2\textsuperscript{nd} Given Name Surname}
-\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
-\textit{name of organization (of Aff.)}\\
-City, Country \\
-email address or ORCID}
+\IEEEauthorblockN{3\textsuperscript{rd} Ois\'{\i}n Frizzell}
+\IEEEauthorblockA{\textit{ISE} \\
+\textit{University of Limerick}\\
+Limerick, Ireland \\
+23368276@studentmail.ul.ie}
 }
 
 \maketitle
 
-\begin{abstract}
-Describe in few words the work done, the lessons learned, and results.
-\end{abstract}
-
 \section{Introduction}
-This document contains some examples of basic {\LaTeX} functions.
+The goal of this lab is to estimate the depth of a scene using a single phone camera. Each of us calibrated our own phone from a video of a printed checkerboard, then filmed a static scene while sliding the phone sideways. Using the calibrated intrinsics, the motion of the camera between frames can be recovered, and two frames of the same video can be treated as a stereo pair. This report describes the pipeline and what did and did not work for each camera.
 
-\subsection{Lists}
+\section{Methodology}
 
-List can be bulleted\dots
-\begin{itemize}
-\item First
-\item Second
-\item Third
-\end{itemize}
+\subsection{Video Capture and Pre-processing}
+Camera~02 is an iPhone with a 24\,mm (35\,mm equivalent), f/1.78 main lens. It records portrait video at 2160$\times$3840 and 60\,fps, so the 7\,s calibration clip was 45\,MB, well over the 5\,MB limit. Every video from this camera, calibration and scenes alike, goes through the same script. Each frame is resized to 360$\times$640 using area interpolation, and every second frame is dropped to get 30\,fps. The calibration video went from 45\,MB to 2.4\,MB.
 
-Or enumerated
+The pre-processing has to be identical for all videos because $K$ is in pixels. A $K$ found on 4K frames would not be valid for 360$\times$640 scene frames.
 
-\begin{enumerate}
-\item First
-\item Second
-\item Third
-\end{enumerate}
+\subsection{Calibration Frames}
+We sampled 24 frames at even intervals across the downscaled calibration video. Each frame is converted to grayscale and passed to OpenCV's findChessboardCorners. The board has 9$\times$6 squares, so 8$\times$5 inner corners, with a square size of $s = 2.5$\,cm. The lab handout describes the grid as 9$\times$6, but with that pattern size no frame was detected on our printed board, so we used 8$\times$5. With it, the full pattern was found in all 24 frames.
 
-\subsection{Equations}
+Our first attempt took the frames from the original 4K video. There the pattern was found in only 25 of 60 frames, and all 25 came from the second half of the clip. After downscaling, the same 60 frames were all detected.
 
-Equations can have their own environment,
+\subsection{Intrinsic Calibration}
+For every frame, the 3D object points are the 40 inner corners on the $Z = 0$ plane,
 \begin{equation}
-a+b=\gamma\label{eq}
+P_{ij} = (i\,s,\; j\,s,\; 0), \quad i = 0,\dots,7, \quad j = 0,\dots,4.
 \end{equation}
-and be reference (Equation~\ref{eq}), or can be inline and blend in the text like this: $\sum_{i=0}^{N}x_i$, like any other word.
+These, together with the detected 2D corners from all 24 frames, are passed to calibrateCamera. To get the mean reprojection error, we project the board points back into each frame with projectPoints and average the pixel distance to the detected corners. $K$ and $D$ are saved as text files with NumPy.
 
-\subsection{Figures and Tables}
+\section{Results}
 
 \begin{table}
-\caption{Table Type Styles}
+\caption{Intrinsics of Camera 02 (360$\times$640)}
 \begin{center}
-\begin{tabular}{|c|c|c|c|}
+\begin{tabular}{|l|c|}
 \hline
-\textbf{Table}&\multicolumn{3}{|c|}{\textbf{Table Column Head}} \\
-\cline{2-4} 
-\textbf{Head} & \textbf{\textit{Table column subhead}}& \textbf{\textit{Subhead}}& \textbf{\textit{Subhead}} \\
+\textbf{Parameter} & \textbf{Value} \\
 \hline
-copy& More table copy$^{\mathrm{a}}$& &  \\
+$f_x$, $f_y$ & 529.8\,px, 529.5\,px \\
+$c_x$, $c_y$ & 185.3\,px, 315.6\,px \\
+Skew & 0 \\
+$k_1$, $k_2$, $k_3$ & 0.031, 1.441, $-8.147$ \\
+$p_1$, $p_2$ & $-0.005$, 0.005 \\
+Mean reprojection error & 0.206\,px \\
 \hline
-\multicolumn{4}{l}{$^{\mathrm{a}}$Sample of a Table footnote.}
 \end{tabular}
-\label{tab1}
+\label{tab:cam02}
 \end{center}
 \end{table}
 
-\begin{figure}
-% Uncomment the line below to include an image from a source file
-\centerline{\includegraphics{fig1.png}}
-\caption{Example of a figure caption.}
-\label{fig}
-\end{figure}
+Table~\ref{tab:cam02} shows the intrinsics of camera~02. The mean reprojection error is 0.206\,px, under the 0.5\,px target. The principal point is within 6\,px of the image centre $(180, 320)$, and $f_x \approx f_y$, which is what we expect for square pixels.
 
-They appear by default on top of the text, and you reference like this: Figure~\ref{fig} and Table~\ref{tab1}.
+\section{Discussion and Failure Analysis}
 
-\subsection{Citations}
+\subsection{Camera 02 Calibration}
+A 24\,mm equivalent lens should give $f \approx \frac{24}{36} \times 640 \approx 427$\,px along the long side of a 360$\times$640 frame. We measured 530\,px, about 24\% more. Our guess is that the iPhone crops the sensor in video mode for stabilisation, which narrows the field of view, but we did not test this.
 
-If you need to cite external sources, use the \texttt{assets/latex/report.bib} file. As an example, here's how you cite the textbook~\cite{foundationsCVbook}.
-
-\printbibliography
+The distortion terms $k_2$ and $k_3$ are large and have opposite signs. In our calibration video the board stays in the top half of the frame, at a similar distance and with only a moderate tilt. With so little variety, the higher order terms are poorly constrained and partly cancel each other out. Re-recording with the board closer to the image corners and at more angles should give more stable values.
 
 \end{document}
