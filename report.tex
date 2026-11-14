@@ -9,7 +9,7 @@
 \usepackage{textcomp}
 \usepackage{xcolor}
 \usepackage[backend=biber,style=numeric]{biblatex}
-\addbibresource{assets/latex/report.bib} 
+\addbibresource{assets/latex/report.bib}
 
  \graphicspath{{assets/latex/}}
 
@@ -17,11 +17,11 @@
 
 \title{CS6524 Computer Vision Lab. 2\\ Camera Calibration and Stereo Vision}
 
-\author{\IEEEauthorblockN{1\textsuperscript{st} Given Name Surname}
-\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
-\textit{name of organization (of Aff.)}\\
-City, Country \\
-email address or ORCID}
+\author{\IEEEauthorblockN{1\textsuperscript{st} Nandakishore Vinayakrishnan}
+\IEEEauthorblockA{\textit{ISE} \\
+\textit{University of Limerick}\\
+Limerick, Ireland \\
+23070854@studentmail.ul.ie}
 \and
 \IEEEauthorblockN{2\textsuperscript{nd} Given Name Surname}
 \IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
@@ -69,19 +69,21 @@ These, together with the detected 2D corners from all 24 frames, are passed to c
 \hline
 \textbf{Parameter} & \textbf{Value} \\
 \hline
-$f_x$, $f_y$ & 529.8\,px, 529.5\,px \\
-$c_x$, $c_y$ & 185.3\,px, 315.6\,px \\
+$f_x$, $f_y$ & 528.687\,px, 528.613\,px \\
+$c_x$, $c_y$ & 187.698\,px, 317.255\,px \\
 Skew & 0 \\
-$k_1$, $k_2$, $k_3$ & 0.031, 1.441, $-8.147$ \\
-$p_1$, $p_2$ & $-0.005$, 0.005 \\
-Mean reprojection error & 0.206\,px \\
+$k_1$, $k_2$, $k_3$ & $-0.021$, 2.747, $-15.807$ \\
+$p_1$, $p_2$ & $-0.003$, 0.006 \\
+Mean reprojection error & 0.128\,px \\
 \hline
 \end{tabular}
 \label{tab:cam02}
 \end{center}
 \end{table}
 
-Table~\ref{tab:cam02} shows the intrinsics of camera~02. The mean reprojection error is 0.206\,px, under the 0.5\,px target. The principal point is within 6\,px of the image centre $(180, 320)$, and $f_x \approx f_y$, which is what we expect for square pixels.
+Table~\ref{tab:cam02} shows the intrinsics of camera~02. The mean reprojection error is 0.128\,px, under the 0.5\,px target. The principal point is within 8\,px of the image centre $(180, 320)$, and $f_x \approx f_y$, which is what we expect for square pixels.
+
+The scene clip contains 256 frames. With adjacent-frame pose estimation, 13 of the 255 pairs produced depth maps; pairs with fewer than eight pose inliers were rejected. The generated heatmap contains those usable pairs, and the point cloud uses the first one. Because the translation recovered from an essential matrix has unknown scale and no physical inter-frame baseline was recorded, these outputs are relative-depth results, not centimetres.
 
 \section{Discussion and Failure Analysis}
 
@@ -89,5 +91,8 @@ Table~\ref{tab:cam02} shows the intrinsics of camera~02. The mean reprojection e
 A 24\,mm equivalent lens should give $f \approx \frac{24}{36} \times 640 \approx 427$\,px along the long side of a 360$\times$640 frame. We measured 530\,px, about 24\% more. Our guess is that the iPhone crops the sensor in video mode for stabilisation, which narrows the field of view, but we did not test this.
 
 The distortion terms $k_2$ and $k_3$ are large and have opposite signs. In our calibration video the board stays in the top half of the frame, at a similar distance and with only a moderate tilt. With so little variety, the higher order terms are poorly constrained and partly cancel each other out. Re-recording with the board closer to the image corners and at more angles should give more stable values.
+
+\subsection{Scene 02-01}
+The pose filter rejected 242 adjacent pairs, mostly because the recovered motion did not have enough cheirality-consistent inliers. This is consistent with small inter-frame parallax or unstable feature geometry during the smooth camera motion. The pipeline produced a visualization, but its scale is arbitrary; measuring the camera displacement for each pair and recording a larger, more clearly lateral motion are necessary before reporting physical depth in centimeters.
 
 \end{document}

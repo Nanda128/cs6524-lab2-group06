@@ -1,4 +1,3 @@
-import sys
 from pathlib import Path
 
 import cv2
@@ -34,27 +33,35 @@ def mean_reprojection_error(board_points, image_points, rotations, translations,
 def calibrate(frames_dir):
     detections = find_chessboard_corners(frames_dir, PATTERN_SIZE)
     image_points = [corners for corners in detections.values() if corners is not None]
+    if len(image_points) < 3:
+        raise ValueError(
+            f'Need at least 3 usable calibration frames in {frames_dir}; '
+            f'found {len(image_points)}'
+        )
 
     board_points = chessboard_points(PATTERN_SIZE, SQUARE_SIZE_CM)
     object_points = [board_points] * len(image_points)
 
-    height, width = cv2.imread(str(next(iter(detections)))).shape[:2]
+    first_image = next(
+        (cv2.imread(str(path)) for path in detections if detections[path] is not None),
+        None,
+    )
+    if first_image is None:
+        raise ValueError(f'No readable calibration frames in {frames_dir}')
+    height, width = first_image.shape[:2]
+    for path in detections:
+        image = cv2.imread(str(path))
+        if image is not None and image.shape[:2] != (height, width):
+            raise ValueError(f'Calibration frame dimensions differ in {frames_dir}: {path}')
 
     _, K, D, rotations, translations = cv2.calibrateCamera(
         object_points, image_points, (width, height), None, None)
 
     error = mean_reprojection_error(board_points, image_points, rotations, translations, K, D)
-    return K, D, error
+    return K, D, error, (width, height)
 
 
-if __name__ == '__main__':
-    camera = sys.argv[1]
-    K, D, error = calibrate(ROOT_IN / f'{camera}_calibration_frames')
-
+def save_calibration(camera, K, D):
+    ROOT_OUT.mkdir(parents=True, exist_ok=True)
     np.savetxt(ROOT_OUT / f'{camera}_K.csv', K, delimiter=',', fmt='%.6f')
     np.savetxt(ROOT_OUT / f'{camera}_D.csv', D, delimiter=',', fmt='%.6f')
-
-    print('K =')
-    print(K)
-    print('D =', D.ravel())
-    print('Reprojection error:', error)

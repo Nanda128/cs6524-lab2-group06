@@ -17,7 +17,23 @@ def find_chessboard_corners(frames_dir, pattern_size):
     detections = {}
     for path in sorted(Path(frames_dir).glob('*.png')):
         bgr = cv2.imread(str(path))
+        if bgr is None:
+            detections[path] = None
+            continue
+
         gray = grayscale(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
         found, corners = cv2.findChessboardCorners(gray, pattern_size)
+        if found:
+            corners = cv2.cornerSubPix(
+                gray,
+                corners,
+                (11, 11),
+                (-1, -1),
+                (
+                    cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER,
+                    30,
+                    0.001,
+                ),
+            )
         detections[path] = corners if found else None
     return detections
